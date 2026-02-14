@@ -1,0 +1,191 @@
+{% extends 'billing/base.html' %}
+{% block title %}Bills - Macrohon Water Billing{% endblock %}
+{% block page_title %}Bills Management{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h4><i class="fa fa-file-invoice"></i> Bills</h4>
+    </div>
+    <div class="col-md-4 text-right">
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+            <i class="fa fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Bills Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card" style="border-color:#28a745;">
+            <div class="card-body text-center">
+                <h6 class="text-muted">Total Bills</h6>
+                <h3 class="text-success">{{ bills.count }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card" style="border-color:#dc3545;">
+            <div class="card-body text-center">
+                <h6 class="text-muted">Unpaid Bills</h6>
+                <h3 class="text-danger">{{ unpaid_count }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card" style="border-color:#007bff;">
+            <div class="card-body text-center">
+                <h6 class="text-muted">Total Amount Due</h6>
+                <h3 class="text-primary">₱{{ total_amount_due|floatformat:2 }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card" style="border-color:#ffc107;">
+            <div class="card-body text-center">
+                <h6 class="text-muted">Overdue Bills</h6>
+                <h3 class="text-warning">{{ overdue_count }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bills Table -->
+<div class="card">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fa fa-list"></i> Bills List
+        </div>
+        <small>{{ bills.count }} total bills</small>
+    </div>
+    <div class="card-body p-0">
+        {% if bills %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Bill #</th>
+                            <th>Account</th>
+                            <th>Subscriber</th>
+                            <th>Billing Period</th>
+                            <th>Consumption</th>
+                            <th class="text-right">Amount Due</th>
+                            <th class="text-right">Amount Paid</th>
+                            <th class="text-right">Balance</th>
+                            <th>Status</th>
+                            <th>Due Date</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bill in bills %}
+                        <tr>
+                            <td>
+                                <strong>{{ bill.id|stringformat:"04d" }}</strong>
+                            </td>
+                            <td>
+                                <a href="{% url 'subscriber-detail' bill.subscriber.pk %}" class="text-decoration-none">
+                                    {{ bill.subscriber.account_number }}
+                                </a>
+                            </td>
+                            <td>{{ bill.subscriber.full_name }}</td>
+                            <td>{{ bill.billing_month|date:"M Y" }}</td>
+                            <td>
+                                <span class="badge badge-info">
+                                    {{ bill.volume_consumed }}m³
+                                </span>
+                            </td>
+                            <td class="text-right font-weight-bold">
+                                ₱{{ bill.total_amount_due|floatformat:2 }}
+                            </td>
+                            <td class="text-right">
+                                ₱{{ bill.amount_paid|floatformat:2 }}
+                            </td>
+                            <td class="text-right font-weight-bold">
+                                ₱{{ bill.balance|floatformat:2 }}
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ bill.status|lower }}">
+                                    {{ bill.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {{ bill.due_date|date:"M d, Y" }}
+                                {% if bill.due_date < today and bill.status != 'PAID' %}
+                                    <br><small class="text-danger">Overdue</small>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'bill-detail' bill.pk %}" 
+                                       class="btn btn-sm btn-outline-primary" 
+                                       title="View Details">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'print-billing-notice' bill.pk %}" 
+                                       class="btn btn-sm btn-outline-info" 
+                                       title="Print Notice"
+                                       target="_blank">
+                                        <i class="fa fa-print"></i>
+                                    </a>
+                                    {% if bill.status != 'PAID' %}
+                                    <a href="{% url 'record-payment' bill.pk %}" 
+                                       class="btn btn-sm btn-outline-success" 
+                                       title="Record Payment">
+                                        <i class="fa fa-money-bill"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center p-5">
+                <i class="fa fa-file-invoice fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No Bills Found</h5>
+                <p class="text-muted mb-3">
+                    No bills have been generated yet. Add meter readings and run the billing command to generate bills.
+                </p>
+                <a href="{% url 'dashboard' %}" class="btn btn-primary">
+                    <i class="fa fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Quick Actions -->
+{% if bills %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fa fa-tools"></i> Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <a href="{% url 'collection-report' %}" class="btn btn-outline-primary btn-block">
+                            <i class="fa fa-chart-bar"></i> Collection Report
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{% url 'delinquent-report' %}" class="btn btn-outline-warning btn-block">
+                            <i class="fa fa-exclamation-triangle"></i> Delinquent Report
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-info btn-block" onclick="window.print()">
+                            <i class="fa fa-print"></i> Print This List
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

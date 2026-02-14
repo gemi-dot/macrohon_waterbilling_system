@@ -1,0 +1,313 @@
+{% extends 'billing/base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}{% if subscriber %}Edit Subscriber{% else %}Add New Subscriber{% endif %} - Macrohon Water Billing{% endblock %}
+{% block page_title %}{% if subscriber %}Edit Subscriber{% else %}Add New Subscriber{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h4>
+            <i class="fa fa-{% if subscriber %}edit{% else %}plus{% endif %}"></i>
+            {% if subscriber %}Edit Subscriber: {{ subscriber.full_name }}{% else %}Add New Subscriber{% endif %}
+        </h4>
+    </div>
+    <div class="col-md-4 text-right">
+        <a href="{% url 'subscriber-list' %}" class="btn btn-secondary">
+            <i class="fa fa-arrow-left"></i> Back to Subscribers
+        </a>
+        {% if subscriber %}
+        <a href="{% url 'subscriber-detail' subscriber.pk %}" class="btn btn-outline-primary">
+            <i class="fa fa-eye"></i> View Details
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Form Card -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="fa fa-user"></i> Subscriber Information
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <!-- Personal Information Section -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5 class="text-primary border-bottom pb-2">
+                                <i class="fa fa-user-circle"></i> Personal Information
+                            </h5>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-id-card"></i> Account Number *
+                                </label>
+                                <input type="text" name="account_number" class="form-control" placeholder="MHN-2026-XXX" required>
+                                <small class="form-text text-muted">Format: MHN-YYYY-NNNN</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="font-weight-bold">First Name *</label>
+                                <input type="text" name="first_name" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Last Name *</label>
+                                <input type="text" name="last_name" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Middle Name</label>
+                                <input type="text" name="middle_name" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Suffix</label>
+                                <input type="text" name="suffix" class="form-control" placeholder="Jr., Sr., III, etc.">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-tag"></i> Classification *
+                                </label>
+                                <select name="classification" class="form-control" required>
+                                    <option value="">Select Classification</option>
+                                    <option value="PRIVATE">Private / Residential</option>
+                                    <option value="COMMERCIAL">Commercial / Business</option>
+                                    <option value="GOVERNMENT">Government Institution</option>
+                                    <option value="BULK">Bulk / Reseller</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Information Section -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5 class="text-info border-bottom pb-2">
+                                <i class="fa fa-address-book"></i> Contact Information
+                            </h5>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-home"></i> Address *
+                                </label>
+                                <textarea name="address" class="form-control" rows="2" required></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Barangay *</label>
+                                <input type="text" name="barangay" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Service Address</label>
+                                <textarea name="service_address" class="form-control" rows="2"></textarea>
+                                <small class="form-text text-muted">Leave blank if same as address above</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-phone"></i> Contact Number
+                                </label>
+                                <input type="text" name="contact_number" class="form-control" placeholder="09123456789">
+                            </div>
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-envelope"></i> Email Address
+                                </label>
+                                <input type="email" name="email" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Meter Information Section -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5 class="text-success border-bottom pb-2">
+                                <i class="fa fa-tachometer-alt"></i> Meter Information
+                            </h5>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-hashtag"></i> Meter Number *
+                                </label>
+                                <input type="text" name="meter_number" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Meter Size</label>
+                                <input type="text" name="meter_size" class="form-control" value="1/2 inch">
+                                <small class="form-text text-muted">Default: 1/2 inch</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-calendar"></i> Connection Date *
+                                </label>
+                                <input type="date" name="connection_date" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Account Settings Section -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5 class="text-warning border-bottom pb-2">
+                                <i class="fa fa-cog"></i> Account Settings
+                            </h5>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-toggle-on"></i> Status
+                                </label>
+                                <select name="status" class="form-control">
+                                    <option value="ACTIVE" selected>Active</option>
+                                    <option value="DISCONNECTED">Disconnected</option>
+                                    <option value="SUSPENDED">Suspended</option>
+                                    <option value="CLOSED">Closed</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-peso-sign"></i> Monthly Minimum
+                                </label>
+                                <input type="number" step="0.01" name="monthly_minimum" class="form-control" value="150.00">
+                                <small class="form-text text-muted">Will be set based on classification</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check mt-4 pt-2">
+                                <input type="checkbox" name="is_senior" class="form-check-input" id="is_senior">
+                                <label class="form-check-label font-weight-bold" for="is_senior">
+                                    <i class="fa fa-user-clock text-warning"></i> Senior Citizen (20% Discount)
+                                </label>
+                                <small class="form-text text-muted">Check if subscriber is a senior citizen</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <hr>
+                            <div class="text-right">
+                                <a href="{% url 'subscriber-list' %}" class="btn btn-secondary mr-2">
+                                    <i class="fa fa-times"></i> Cancel
+                                </a>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fa fa-save"></i> 
+                                    {% if subscriber %}Update Subscriber{% else %}Add Subscriber{% endif %}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Help Card -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fa fa-info-circle"></i> Help & Guidelines</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Account Numbers</h6>
+                        <p class="small text-muted">
+                            Use format: <strong>MHN-YYYY-NNNN</strong><br>
+                            Example: MHN-2026-004
+                        </p>
+                        <h6 class="text-primary">Classifications</h6>
+                        <ul class="small text-muted">
+                            <li><strong>Private:</strong> Residential customers</li>
+                            <li><strong>Commercial:</strong> Business establishments</li>
+                            <li><strong>Government:</strong> Government offices</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Senior Citizens</h6>
+                        <p class="small text-muted">
+                            Senior citizens automatically receive 20% discount on their water bills as per RA 9994.
+                        </p>
+                        <h6 class="text-primary">Required Fields</h6>
+                        <p class="small text-muted">
+                            Fields marked with <span class="text-danger">*</span> are required and must be filled out.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Auto-generate account number if adding new subscriber
+    {% if not subscriber %}
+    if ($('#id_account_number').val() === '') {
+        // Generate next account number (this is a simple example)
+        var currentYear = new Date().getFullYear();
+        $('#id_account_number').attr('placeholder', 'MHN-' + currentYear + '-XXX');
+    }
+    {% endif %}
+    
+    // Copy address to service address if service address is empty
+    $('#id_address, #id_barangay').on('blur', function() {
+        if ($('#id_service_address').val() === '') {
+            var address = $('#id_address').val();
+            var barangay = $('#id_barangay').val();
+            if (address && barangay) {
+                $('#id_service_address').val(address + ', ' + barangay + ', Macrohon');
+            }
+        }
+    });
+    
+    // Set default monthly minimum based on classification
+    $('#id_classification').on('change', function() {
+        var classification = $(this).val();
+        var monthlyMinimum = $('#id_monthly_minimum');
+        
+        if (monthlyMinimum.val() === '' || monthlyMinimum.val() === '0.00') {
+            switch(classification) {
+                case 'PRIVATE':
+                    monthlyMinimum.val('150.00');
+                    break;
+                case 'COMMERCIAL':
+                    monthlyMinimum.val('250.00');
+                    break;
+                case 'GOVERNMENT':
+                    monthlyMinimum.val('200.00');
+                    break;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

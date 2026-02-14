@@ -1,0 +1,77 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Macrohon Water Billing{% endblock %}</title>
+  <!-- Bootstrap 4 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body        { background: #f0f4f8; font-family: Arial, sans-serif; }
+    .sidebar    { min-height: 100vh; background: #0D2B55; padding-top: 20px; }
+    .sidebar a  { color: #A8C8F0; display:block; padding:10px 20px; text-decoration:none; }
+    .sidebar a:hover, .sidebar a.active { background:#1B4F8A; color:#fff; border-left:4px solid #2575C4; }
+    .sidebar .nav-section { color:#4A7DB0; font-size:0.75rem; text-transform:uppercase;
+                            letter-spacing:1px; padding:14px 20px 4px; }
+    .topbar     { background:#fff; border-bottom:2px solid #D6E8FA; padding:12px 24px; }
+    .topbar h5  { color:#0D2B55; margin:0; font-weight:bold; }
+    .card       { border:none; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+    .card-header{ border-radius:10px 10px 0 0 !important; }
+    .stat-card  { border-left:5px solid; }
+    .badge-UNPAID   { background:#dc3545; }  .badge-PAID    { background:#28a745; }
+    .badge-OVERDUE  { background:#fd7e14; }  .badge-PARTIAL { background:#ffc107; color:#000; }
+    @media print { .sidebar,.topbar,.no-print { display:none!important; } }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+<div class="container-fluid">
+  <div class="row">
+ 
+    <!-- ── SIDEBAR ──────────────────────────────────────── -->
+    <nav class="col-md-2 sidebar no-print">
+      <div class="text-center mb-3 px-3">
+        <img src="{% static 'billing/img/logo.png' %}" width="60" onerror="this.style.display='none'">
+        <div style="color:#fff;font-weight:bold;font-size:.9rem;margin-top:6px;">Macrohon</div>
+        <div style="color:#7BA7D4;font-size:.75rem;">Water Billing System</div>
+      </div>
+      <div class="nav-section">Main</div>
+      <a href="{% url 'dashboard' %}"><i class="fa fa-tachometer-alt me-2"></i> Dashboard</a>
+      <div class="nav-section">Subscribers</div>
+      <a href="{% url 'subscriber-list' %}"><i class="fa fa-users me-2"></i> All Subscribers</a>
+      <a href="{% url 'subscriber-create' %}"><i class="fa fa-plus me-2"></i> Add Subscriber</a>
+      <div class="nav-section">Billing</div>
+      <a href="{% url 'bill-list' %}"><i class="fa fa-file-invoice me-2"></i> Bills</a>
+      <div class="nav-section">Reports</div>
+      <a href="{% url 'collection-report' %}"><i class="fa fa-chart-bar me-2"></i> Collection</a>
+      <a href="{% url 'delinquent-report' %}"><i class="fa fa-exclamation-triangle me-2"></i> Delinquent</a>
+      <div class="nav-section">Account</div>
+      <a href="{% url 'logout' %}"><i class="fa fa-sign-out-alt me-2"></i> Logout</a>
+    </nav>
+ 
+    <!-- ── MAIN CONTENT ─────────────────────────────────── -->
+    <main class="col-md-10 p-0">
+      <div class="topbar d-flex justify-content-between align-items-center">
+        <h5>{% block page_title %}{% endblock %}</h5>
+        <small class="text-muted">{{ user.get_full_name|default:user.username }}</small>
+      </div>
+      <div class="p-4">
+        {% if messages %}
+          {% for msg in messages %}
+            <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+              {{ msg }} <button type="button" class="close" data-dismiss="alert">&times;</button>
+            </div>
+          {% endfor %}
+        {% endif %}
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body></html>

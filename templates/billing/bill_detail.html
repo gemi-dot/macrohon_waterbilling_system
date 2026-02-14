@@ -1,0 +1,298 @@
+{% extends 'billing/base.html' %}
+{% block title %}Bill Details - Macrohon Water Billing{% endblock %}
+{% block page_title %}Bill Details{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h4><i class="fa fa-file-invoice-dollar"></i> Bill #{{ bill.id|stringformat:"04d" }}</h4>
+    </div>
+    <div class="col-md-4 text-right">
+        <a href="{% url 'bill-list' %}" class="btn btn-secondary">
+            <i class="fa fa-arrow-left"></i> Back to Bills
+        </a>
+    </div>
+</div>
+
+<!-- Bill Status Alert -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        {% if bill.status == 'PAID' %}
+            <div class="alert alert-success">
+                <i class="fa fa-check-circle"></i> This bill has been paid in full.
+            </div>
+        {% elif bill.status == 'OVERDUE' %}
+            <div class="alert alert-danger">
+                <i class="fa fa-exclamation-triangle"></i> This bill is overdue. Due date was {{ bill.due_date|date:"M d, Y" }}.
+            </div>
+        {% elif bill.status == 'PARTIAL' %}
+            <div class="alert alert-warning">
+                <i class="fa fa-info-circle"></i> This bill has been partially paid.
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <i class="fa fa-clock"></i> This bill is unpaid. Due date: {{ bill.due_date|date:"M d, Y" }}.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Bill Details Cards -->
+<div class="row">
+    <!-- Subscriber Information -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="fa fa-user"></i> Subscriber Information
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td><strong>Account Number:</strong></td>
+                        <td>{{ bill.subscriber.account_number }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Name:</strong></td>
+                        <td>{{ bill.subscriber.full_name }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Address:</strong></td>
+                        <td>{{ bill.subscriber.address }}<br>{{ bill.subscriber.barangay }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Contact:</strong></td>
+                        <td>{{ bill.subscriber.contact_number|default:"N/A" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Classification:</strong></td>
+                        <td>
+                            <span class="badge badge-info">{{ bill.subscriber.get_classification_display }}</span>
+                            {% if bill.subscriber.is_senior %}
+                                <span class="badge badge-warning">Senior Citizen</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meter Information -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <i class="fa fa-tachometer-alt"></i> Meter Information
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td><strong>Meter Number:</strong></td>
+                        <td>{{ bill.subscriber.meter_number }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Meter Size:</strong></td>
+                        <td>{{ bill.subscriber.meter_size }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Previous Reading:</strong></td>
+                        <td>{{ bill.meter_reading.previous_reading }}m³</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Current Reading:</strong></td>
+                        <td>{{ bill.meter_reading.current_reading }}m³</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Consumption:</strong></td>
+                        <td><strong class="text-primary">{{ bill.volume_consumed }}m³</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Reading Date:</strong></td>
+                        <td>{{ bill.meter_reading.reading_date|date:"M d, Y" }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Billing Details -->
+<div class="row">
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <i class="fa fa-calculator"></i> Billing Breakdown
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tr>
+                        <td>Water Consumption</td>
+                        <td class="text-right">{{ bill.volume_consumed }}m³</td>
+                        <td class="text-right"></td>
+                    </tr>
+                    <tr>
+                        <td>Basic Water Charge</td>
+                        <td class="text-right"></td>
+                        <td class="text-right">₱{{ bill.basic_charge|floatformat:2 }}</td>
+                    </tr>
+                    {% if bill.subscriber.is_senior and bill.senior_discount > 0 %}
+                    <tr class="text-success">
+                        <td>Senior Citizen Discount (20%)</td>
+                        <td class="text-right"></td>
+                        <td class="text-right">-₱{{ bill.senior_discount|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if bill.other_charges > 0 %}
+                    <tr>
+                        <td>Other Charges</td>
+                        <td class="text-right"></td>
+                        <td class="text-right">₱{{ bill.other_charges|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if bill.penalty_amount > 0 %}
+                    <tr class="text-danger">
+                        <td>Penalty</td>
+                        <td class="text-right"></td>
+                        <td class="text-right">₱{{ bill.penalty_amount|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if bill.arrears > 0 %}
+                    <tr class="text-warning">
+                        <td>Previous Balance (Arrears)</td>
+                        <td class="text-right"></td>
+                        <td class="text-right">₱{{ bill.arrears|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr class="table-primary">
+                        <td><strong>Total Amount Due</strong></td>
+                        <td class="text-right"></td>
+                        <td class="text-right"><strong>₱{{ bill.total_amount_due|floatformat:2 }}</strong></td>
+                    </tr>
+                    <tr class="table-success">
+                        <td><strong>Amount Paid</strong></td>
+                        <td class="text-right"></td>
+                        <td class="text-right"><strong>₱{{ bill.amount_paid|floatformat:2 }}</strong></td>
+                    </tr>
+                    <tr class="table-{% if bill.balance > 0 %}warning{% else %}success{% endif %}">
+                        <td><strong>Balance</strong></td>
+                        <td class="text-right"></td>
+                        <td class="text-right"><strong>₱{{ bill.balance|floatformat:2 }}</strong></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bill Status & Actions -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <i class="fa fa-cogs"></i> Bill Status & Actions
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="font-weight-bold">Status:</label>
+                    <br>
+                    <span class="badge badge-{{ bill.status|lower }} badge-lg">
+                        {{ bill.get_status_display }}
+                    </span>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="font-weight-bold">Important Dates:</label>
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td>Billing Month:</td>
+                            <td>{{ bill.billing_month|date:"M Y" }}</td>
+                        </tr>
+                        <tr>
+                            <td>Due Date:</td>
+                            <td>{{ bill.due_date|date:"M d, Y" }}</td>
+                        </tr>
+                        <tr>
+                            <td>Cutoff Date:</td>
+                            <td>{{ bill.cutoff_date|date:"M d, Y" }}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="mb-3">
+                    <label class="font-weight-bold">Actions:</label>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'print-billing-notice' bill.pk %}" 
+                           class="btn btn-info btn-block" 
+                           target="_blank">
+                            <i class="fa fa-print"></i> Print Billing Notice
+                        </a>
+                        
+                        {% if bill.status != 'PAID' %}
+                        <a href="{% url 'record-payment' bill.pk %}" 
+                           class="btn btn-success btn-block">
+                            <i class="fa fa-money-bill"></i> Record Payment
+                        </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'subscriber-detail' bill.subscriber.pk %}" 
+                           class="btn btn-outline-primary btn-block">
+                            <i class="fa fa-user"></i> View Subscriber
+                        </a>
+                    </div>
+                </div>
+
+                <div class="small text-muted">
+                    <strong>Generated by:</strong> {{ bill.generated_by }}<br>
+                    <strong>Created:</strong> {{ bill.created_at|date:"M d, Y g:i A" }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment History (if any) -->
+{% if bill.ledger_entries.all %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <i class="fa fa-history"></i> Payment History
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>OR Number</th>
+                            <th class="text-right">Debit</th>
+                            <th class="text-right">Credit</th>
+                            <th>Received By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in bill.ledger_entries.all %}
+                        <tr>
+                            <td>{{ entry.entry_date|date:"M d, Y" }}</td>
+                            <td>
+                                <span class="badge badge-{% if entry.entry_type == 'PAYMENT' %}success{% elif entry.entry_type == 'BILLING' %}primary{% else %}secondary{% endif %}">
+                                    {{ entry.get_entry_type_display }}
+                                </span>
+                            </td>
+                            <td>{{ entry.description }}</td>
+                            <td>{{ entry.or_number|default:"-" }}</td>
+                            <td class="text-right">
+                                {% if entry.debit > 0 %}₱{{ entry.debit|floatformat:2 }}{% endif %}
+                            </td>
+                            <td class="text-right text-success">
+                                {% if entry.credit > 0 %}₱{{ entry.credit|floatformat:2 }}{% endif %}
+                            </td>
+                            <td>{{ entry.received_by|default:"-" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

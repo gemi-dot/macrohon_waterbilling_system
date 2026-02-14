@@ -1,0 +1,369 @@
+{% extends 'billing/base.html' %}
+{% block title %}{{ subscriber.full_name }} - Subscriber Details{% endblock %}
+{% block page_title %}Subscriber Details{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h4><i class="fa fa-user"></i> {{ subscriber.full_name }}</h4>
+        <small class="text-muted">Account: {{ subscriber.account_number }}</small>
+    </div>
+    <div class="col-md-4 text-right">
+        <a href="{% url 'subscriber-list' %}" class="btn btn-secondary">
+            <i class="fa fa-arrow-left"></i> Back to Subscribers
+        </a>
+        <a href="{% url 'subscriber-edit' subscriber.pk %}" class="btn btn-primary">
+            <i class="fa fa-edit"></i> Edit
+        </a>
+    </div>
+</div>
+
+<!-- Status Alert -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        {% if subscriber.status == 'ACTIVE' %}
+            <div class="alert alert-success">
+                <i class="fa fa-check-circle"></i> This subscriber account is active.
+                {% if subscriber.is_senior %}
+                    <span class="badge badge-warning ml-2">Senior Citizen - 20% Discount Applied</span>
+                {% endif %}
+            </div>
+        {% elif subscriber.status == 'DISCONNECTED' %}
+            <div class="alert alert-danger">
+                <i class="fa fa-times-circle"></i> This subscriber has been disconnected.
+                {% if subscriber.disconnection_date %}
+                    Disconnected on: {{ subscriber.disconnection_date|date:"M d, Y" }}
+                {% endif %}
+            </div>
+        {% elif subscriber.status == 'SUSPENDED' %}
+            <div class="alert alert-warning">
+                <i class="fa fa-pause-circle"></i> This subscriber account is suspended.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Subscriber Information Cards -->
+<div class="row">
+    <!-- Personal Information -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="fa fa-user"></i> Personal Information
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td><strong>Account Number:</strong></td>
+                        <td>{{ subscriber.account_number }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Full Name:</strong></td>
+                        <td>{{ subscriber.full_name }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Classification:</strong></td>
+                        <td>
+                            <span class="badge badge-info">{{ subscriber.get_classification_display }}</span>
+                            {% if subscriber.is_senior %}
+                                <span class="badge badge-warning">Senior Citizen</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Status:</strong></td>
+                        <td>
+                            <span class="badge badge-{% if subscriber.status == 'ACTIVE' %}success{% elif subscriber.status == 'DISCONNECTED' %}danger{% else %}warning{% endif %}">
+                                {{ subscriber.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Connection Date:</strong></td>
+                        <td>{{ subscriber.connection_date|date:"M d, Y" }}</td>
+                    </tr>
+                    {% if subscriber.disconnection_date %}
+                    <tr>
+                        <td><strong>Disconnection Date:</strong></td>
+                        <td class="text-danger">{{ subscriber.disconnection_date|date:"M d, Y" }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Information -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <i class="fa fa-address-book"></i> Contact Information
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td><strong>Address:</strong></td>
+                        <td>{{ subscriber.address }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Barangay:</strong></td>
+                        <td>{{ subscriber.barangay }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Service Address:</strong></td>
+                        <td>{{ subscriber.service_address|default:"Same as above" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Contact Number:</strong></td>
+                        <td>{{ subscriber.contact_number|default:"N/A" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Email:</strong></td>
+                        <td>{{ subscriber.email|default:"N/A" }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Meter Information & Account Summary -->
+<div class="row">
+    <!-- Meter Information -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <i class="fa fa-tachometer-alt"></i> Meter Information
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td><strong>Meter Number:</strong></td>
+                        <td>{{ subscriber.meter_number }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Meter Size:</strong></td>
+                        <td>{{ subscriber.meter_size }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Monthly Minimum:</strong></td>
+                        <td>₱{{ subscriber.monthly_minimum|floatformat:2 }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Summary -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-warning text-white">
+                <i class="fa fa-calculator"></i> Account Summary
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td><strong>Running Balance:</strong></td>
+                        <td class="{% if subscriber.get_running_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                            ₱{{ subscriber.get_running_balance|floatformat:2 }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Total Bills:</strong></td>
+                        <td>{{ subscriber.bills.count }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Unpaid Bills:</strong></td>
+                        <td class="text-danger">
+                            <!-- Will be calculated by the view -->
+                            -
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Last Bill Date:</strong></td>
+                        <td>
+                            {% if subscriber.bills.first %}
+                                {{ subscriber.bills.first.billing_month|date:"M Y" }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <i class="fa fa-tools"></i> Quick Actions
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <a href="{% url 'reading-create' subscriber.pk %}" class="btn btn-outline-primary btn-block">
+                            <i class="fa fa-plus"></i> Add Reading
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'subscriber-ledger' subscriber.pk %}" class="btn btn-outline-info btn-block">
+                            <i class="fa fa-book"></i> View Ledger
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'subscriber-edit' subscriber.pk %}" class="btn btn-outline-success btn-block">
+                            <i class="fa fa-edit"></i> Edit Details
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        {% if subscriber.bills.exists %}
+                        <a href="{% url 'bill-detail' subscriber.bills.first.pk %}" class="btn btn-outline-warning btn-block">
+                            <i class="fa fa-file-invoice"></i> Latest Bill
+                        </a>
+                        {% else %}
+                        <button class="btn btn-outline-secondary btn-block" disabled>
+                            <i class="fa fa-file-invoice"></i> No Bills Yet
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Bills -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fa fa-file-invoice"></i> Recent Bills
+                </div>
+                <small>{{ subscriber.bills.count }} total bills</small>
+            </div>
+            <div class="card-body p-0">
+                {% if subscriber.bills.exists %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Bill #</th>
+                                    <th>Billing Period</th>
+                                    <th>Consumption</th>
+                                    <th class="text-right">Amount Due</th>
+                                    <th class="text-right">Amount Paid</th>
+                                    <th class="text-right">Balance</th>
+                                    <th>Status</th>
+                                    <th>Due Date</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for bill in subscriber.bills.all|slice:":10" %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ bill.id|stringformat:"04d" }}</strong>
+                                    </td>
+                                    <td>{{ bill.billing_month|date:"M Y" }}</td>
+                                    <td>
+                                        <span class="badge badge-info">{{ bill.volume_consumed }}m³</span>
+                                    </td>
+                                    <td class="text-right font-weight-bold">
+                                        ₱{{ bill.total_amount_due|floatformat:2 }}
+                                    </td>
+                                    <td class="text-right">
+                                        ₱{{ bill.amount_paid|floatformat:2 }}
+                                    </td>
+                                    <td class="text-right font-weight-bold">
+                                        ₱{{ bill.balance|floatformat:2 }}
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-{{ bill.status|lower }}">
+                                            {{ bill.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {{ bill.due_date|date:"M d, Y" }}
+                                        {% if bill.due_date < today and bill.status != 'PAID' %}
+                                            <br><small class="text-danger">Overdue</small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'bill-detail' bill.pk %}" 
+                                               class="btn btn-sm btn-outline-primary" 
+                                               title="View Details">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'print-billing-notice' bill.pk %}" 
+                                               class="btn btn-sm btn-outline-info" 
+                                               title="Print Notice"
+                                               target="_blank">
+                                                <i class="fa fa-print"></i>
+                                            </a>
+                                            {% if bill.status != 'PAID' %}
+                                            <a href="{% url 'record-payment' bill.pk %}" 
+                                               class="btn btn-sm btn-outline-success" 
+                                               title="Record Payment">
+                                                <i class="fa fa-money-bill"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center p-5">
+                        <i class="fa fa-file-invoice fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Bills Found</h5>
+                        <p class="text-muted mb-3">
+                            No bills have been generated for this subscriber yet.
+                        </p>
+                        <a href="{% url 'reading-create' subscriber.pk %}" class="btn btn-primary">
+                            <i class="fa fa-plus"></i> Add Meter Reading
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Audit Information -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fa fa-info-circle"></i> Account Information</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <small class="text-muted">
+                            <strong>Created:</strong> {{ subscriber.created_at|date:"M d, Y g:i A" }}
+                        </small>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">
+                            <strong>Last Updated:</strong> {{ subscriber.updated_at|date:"M d, Y g:i A" }}
+                        </small>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">
+                            <strong>Created By:</strong> {{ subscriber.created_by|default:"System" }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -91,13 +91,13 @@ def subscriber_create(request):
  
 @login_required
 def subscriber_detail(request, pk):
-    sub      = get_object_or_404(Subscriber, pk=pk)
-    bills    = sub.bills.all().order_by('-billing_month')
-    ledger   = sub.ledger_entries.all().order_by('entry_date', 'created_at')
-    notices  = sub.disconnection_notices.all().order_by('-notice_date')
-    balance  = sub.get_running_balance()
+    subscriber = get_object_or_404(Subscriber, pk=pk)
+    bills    = subscriber.bills.all().order_by('-billing_month')
+    ledger   = subscriber.ledger_entries.all().order_by('entry_date', 'created_at')
+    notices  = subscriber.disconnection_notices.all().order_by('-notice_date')
+    balance  = subscriber.get_running_balance()
     return render(request, 'billing/subscriber_detail.html', {
-        'sub': sub, 'bills': bills, 'ledger': ledger,
+        'subscriber': subscriber, 'bills': bills, 'ledger': ledger,
         'notices': notices, 'balance': balance,
     })
  

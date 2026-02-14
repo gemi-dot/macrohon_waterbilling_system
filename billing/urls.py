@@ -10,6 +10,8 @@ urlpatterns = [
     path('subscribers/',                    views.subscriber_list,        name='subscriber-list'),
     path('subscribers/add/',                views.subscriber_create,      name='subscriber-create'),
     path('subscribers/<int:pk>/',           views.subscriber_detail,      name='subscriber-detail'),
+    path("subscriber/<int:pk>/", views.subscriber_detail, name="subscriber_detail"),
+
     path('subscribers/<int:pk>/edit/',      views.subscriber_edit,        name='subscriber-edit'),
     path('subscribers/<int:pk>/ledger/',    views.subscriber_ledger,      name='subscriber-ledger'),
  
