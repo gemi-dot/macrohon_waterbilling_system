@@ -1,0 +1,110 @@
+{% extends 'billing/base.html' %}
+{% block title %}Bill Notice — {{ bill.subscriber.account_number }}{% endblock %}
+{% block page_title %}Billing Notice{% endblock %}
+{% block content %}
+ 
+<div class='no-print mb-3'>
+  <a href='{% url "bill-detail" bill.pk %}' class='btn btn-secondary'>
+    <i class='fa fa-arrow-left'></i> Back to Bill</a>
+  <button onclick='window.print()' class='btn btn-primary'>
+    <i class='fa fa-print'></i> Print Notice</button>
+</div>
+ 
+<!-- ── NOTICE HEADER ──────────────────────────────────────── -->
+<div class='card mb-3'>
+  <div class='card-body text-center p-4'
+       style='background:#0D2B55;color:#fff;border-radius:10px 10px 0 0;'>
+    <h4 class='mb-0'>MUNICIPALITY OF MACROHON</h4>
+    <p class='mb-0' style='color:#A8C8F0;'>Water Services Division</p>
+    <h5 class='mt-2 mb-0'>STATEMENT OF ACCOUNT</h5>
+    <p style='color:#7BA7D4;'>{{ bill.billing_month|date:'F Y' }}</p>
+  </div>
+ 
+  <!-- ── SUBSCRIBER INFO ────────────────────────────────── -->
+  <div class='card-body'>
+    <div class='row'>
+      <div class='col-6'>
+        <table class='table table-sm table-borderless'>
+          <tr><td class='font-weight-bold' width='45%'>Account No.</td>
+              <td>{{ bill.subscriber.account_number }}</td></tr>
+          <tr><td class='font-weight-bold'>Subscriber</td>
+              <td>{{ bill.subscriber.full_name }}</td></tr>
+          <tr><td class='font-weight-bold'>Address</td>
+              <td>{{ bill.subscriber.service_address }}</td></tr>
+          <tr><td class='font-weight-bold'>Barangay</td>
+              <td>{{ bill.subscriber.barangay }}</td></tr>
+        </table>
+      </div>
+      <div class='col-6'>
+        <table class='table table-sm table-borderless'>
+          <tr><td class='font-weight-bold' width='45%'>Meter No.</td>
+              <td>{{ bill.subscriber.meter_number }}</td></tr>
+          <tr><td class='font-weight-bold'>Classification</td>
+              <td>{{ bill.subscriber.get_classification_display }}</td></tr>
+          <tr><td class='font-weight-bold'>Due Date</td>
+              <td class='text-danger font-weight-bold'>{{ bill.due_date|date:'F d, Y' }}</td></tr>
+          <tr><td class='font-weight-bold'>Billing Month</td>
+              <td>{{ bill.billing_month|date:'F Y' }}</td></tr>
+        </table>
+      </div>
+    </div>
+ 
+    <!-- ── CONSUMPTION & CHARGES ─────────────────────────── -->
+    <hr>
+    <div class='row'>
+      <div class='col-6'>
+        <h6 class='text-primary'>Meter Reading</h6>
+        <table class='table table-sm table-bordered'>
+          <tr><td>Previous Reading</td><td class='text-right'>{{ bill.meter_reading.previous_reading }} cu.m</td></tr>
+          <tr><td>Current Reading</td><td class='text-right'>{{ bill.meter_reading.current_reading }} cu.m</td></tr>
+          <tr class='table-primary font-weight-bold'>
+            <td>Volume Consumed</td>
+            <td class='text-right'>{{ bill.volume_consumed }} cu.m</td></tr>
+        </table>
+      </div>
+      <div class='col-6'>
+        <h6 class='text-primary'>Charges Breakdown</h6>
+        <table class='table table-sm table-bordered'>
+          <tr><td>Basic Water Charge</td>
+              <td class='text-right'>&#8369; {{ bill.basic_charge|floatformat:2 }}</td></tr>
+          {% if bill.senior_discount %}<tr><td>Senior Discount (20%)</td>
+              <td class='text-right text-success'>- &#8369; {{ bill.senior_discount|floatformat:2 }}</td></tr>{% endif %}
+          <tr><td>Previous Arrears</td>
+              <td class='text-right'>&#8369; {{ bill.arrears|floatformat:2 }}</td></tr>
+          <tr><td>Other Charges</td>
+              <td class='text-right'>&#8369; {{ bill.other_charges|floatformat:2 }}</td></tr>
+          <tr><td>Penalty</td>
+              <td class='text-right text-danger'>&#8369; {{ bill.penalty_amount|floatformat:2 }}</td></tr>
+          <tr class='table-dark'>
+            <td class='font-weight-bold'>TOTAL AMOUNT DUE</td>
+            <td class='text-right font-weight-bold h5'>&#8369; {{ bill.total_amount_due|floatformat:2 }}</td>
+          </tr>
+          <tr><td>Amount Paid</td>
+              <td class='text-right'>&#8369; {{ bill.amount_paid|floatformat:2 }}</td></tr>
+          <tr class='table-warning'>
+            <td class='font-weight-bold'>REMAINING BALANCE</td>
+            <td class='text-right font-weight-bold'>&#8369; {{ bill.balance|floatformat:2 }}</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+ 
+    <!-- ── DISCONNECTION NOTICE BOX ──────────────────────── -->
+    {% if notice and notice.status in 'PENDING DELIVERED' %}
+    <div class='alert alert-danger border border-danger mt-3'>
+      <h5 class='text-danger'><i class='fa fa-exclamation-triangle'></i>
+        NOTICE OF DISCONNECTION</h5>
+      <p>Your account has an overdue balance of
+         <strong>&#8369; {{ notice.amount_overdue|floatformat:2 }}</strong>.
+         Your water service will be <strong>DISCONNECTED</strong> on
+         <strong class='text-danger'>{{ notice.cutoff_date|date:'F d, Y' }}</strong>
+         if payment is not made before this date.</p>
+      <p>A reconnection fee of
+         <strong>&#8369; {{ notice.reconnection_fee|floatformat:2 }}</strong>
+         will be charged upon restoration of service.</p>
+      <p><strong>Please pay at the Municipal Hall Cashier's Office.</strong></p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

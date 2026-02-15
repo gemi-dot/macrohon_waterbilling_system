@@ -1,27 +1,40 @@
 {% extends 'billing/base.html' %}
-{% load crispy_forms_tags %}
-{% block title %}{% if subscriber %}Edit Subscriber{% else %}Add New Subscriber{% endif %} - Macrohon Water Billing{% endblock %}
-{% block page_title %}{% if subscriber %}Edit Subscriber{% else %}Add New Subscriber{% endif %}{% endblock %}
+{% block title %}{% if form.instance.pk %}Edit Subscriber{% else %}Add New Subscriber{% endif %} - Macrohon Water Billing{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit Subscriber{% else %}Add New Subscriber{% endif %}{% endblock %}
 
 {% block content %}
 <div class="row mb-3">
     <div class="col-md-8">
         <h4>
-            <i class="fa fa-{% if subscriber %}edit{% else %}plus{% endif %}"></i>
-            {% if subscriber %}Edit Subscriber: {{ subscriber.full_name }}{% else %}Add New Subscriber{% endif %}
+            <i class="fa fa-{% if form.instance.pk %}edit{% else %}plus{% endif %}"></i>
+            {% if form.instance.pk %}Edit Subscriber: {{ form.instance.full_name }}{% else %}Add New Subscriber{% endif %}
         </h4>
     </div>
     <div class="col-md-4 text-right">
         <a href="{% url 'subscriber-list' %}" class="btn btn-secondary">
             <i class="fa fa-arrow-left"></i> Back to Subscribers
         </a>
-        {% if subscriber %}
-        <a href="{% url 'subscriber-detail' subscriber.pk %}" class="btn btn-outline-primary">
+        {% if form.instance.pk %}
+        <a href="{% url 'subscriber-detail' form.instance.pk %}" class="btn btn-outline-primary">
             <i class="fa fa-eye"></i> View Details
         </a>
         {% endif %}
     </div>
 </div>
+
+<!-- Display Form Errors -->
+{% if form.errors %}
+<div class="alert alert-danger">
+    <h6><i class="fa fa-exclamation-triangle"></i> Please correct the following errors:</h6>
+    <ul class="mb-0">
+        {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+                <li><strong>{{ field|capfirst }}:</strong> {{ error }}</li>
+            {% endfor %}
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
 
 <!-- Form Card -->
 <div class="row">
@@ -46,32 +59,48 @@
                                 <label class="font-weight-bold">
                                     <i class="fa fa-id-card"></i> Account Number *
                                 </label>
-                                <input type="text" name="account_number" class="form-control" placeholder="MHN-2026-XXX" required>
+                                {{ form.account_number }}
                                 <small class="form-text text-muted">Format: MHN-YYYY-NNNN</small>
+                                {% if form.account_number.errors %}
+                                    <div class="text-danger">{{ form.account_number.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label class="font-weight-bold">First Name *</label>
-                                <input type="text" name="first_name" class="form-control" required>
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                    <div class="text-danger">{{ form.first_name.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label class="font-weight-bold">Last Name *</label>
-                                <input type="text" name="last_name" class="form-control" required>
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                    <div class="text-danger">{{ form.last_name.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label class="font-weight-bold">Middle Name</label>
-                                <input type="text" name="middle_name" class="form-control">
+                                {{ form.middle_name }}
+                                {% if form.middle_name.errors %}
+                                    <div class="text-danger">{{ form.middle_name.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label class="font-weight-bold">Suffix</label>
-                                <input type="text" name="suffix" class="form-control" placeholder="Jr., Sr., III, etc.">
+                                {{ form.suffix }}
+                                <small class="form-text text-muted">Jr., Sr., III, etc.</small>
+                                {% if form.suffix.errors %}
+                                    <div class="text-danger">{{ form.suffix.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -79,13 +108,10 @@
                                 <label class="font-weight-bold">
                                     <i class="fa fa-tag"></i> Classification *
                                 </label>
-                                <select name="classification" class="form-control" required>
-                                    <option value="">Select Classification</option>
-                                    <option value="PRIVATE">Private / Residential</option>
-                                    <option value="COMMERCIAL">Commercial / Business</option>
-                                    <option value="GOVERNMENT">Government Institution</option>
-                                    <option value="BULK">Bulk / Reseller</option>
-                                </select>
+                                {{ form.classification }}
+                                {% if form.classification.errors %}
+                                    <div class="text-danger">{{ form.classification.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -102,20 +128,29 @@
                                 <label class="font-weight-bold">
                                     <i class="fa fa-home"></i> Address *
                                 </label>
-                                <textarea name="address" class="form-control" rows="2" required></textarea>
+                                {{ form.address }}
+                                {% if form.address.errors %}
+                                    <div class="text-danger">{{ form.address.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="font-weight-bold">Barangay *</label>
-                                <input type="text" name="barangay" class="form-control" required>
+                                {{ form.barangay }}
+                                {% if form.barangay.errors %}
+                                    <div class="text-danger">{{ form.barangay.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="font-weight-bold">Service Address</label>
-                                <textarea name="service_address" class="form-control" rows="2"></textarea>
+                                {{ form.service_address }}
                                 <small class="form-text text-muted">Leave blank if same as address above</small>
+                                {% if form.service_address.errors %}
+                                    <div class="text-danger">{{ form.service_address.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -123,13 +158,20 @@
                                 <label class="font-weight-bold">
                                     <i class="fa fa-phone"></i> Contact Number
                                 </label>
-                                <input type="text" name="contact_number" class="form-control" placeholder="09123456789">
+                                {{ form.contact_number }}
+                                <small class="form-text text-muted">e.g., 09123456789</small>
+                                {% if form.contact_number.errors %}
+                                    <div class="text-danger">{{ form.contact_number.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="form-group">
                                 <label class="font-weight-bold">
                                     <i class="fa fa-envelope"></i> Email Address
                                 </label>
-                                <input type="email" name="email" class="form-control">
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger">{{ form.email.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -146,14 +188,20 @@
                                 <label class="font-weight-bold">
                                     <i class="fa fa-hashtag"></i> Meter Number *
                                 </label>
-                                <input type="text" name="meter_number" class="form-control" required>
+                                {{ form.meter_number }}
+                                {% if form.meter_number.errors %}
+                                    <div class="text-danger">{{ form.meter_number.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label class="font-weight-bold">Meter Size</label>
-                                <input type="text" name="meter_size" class="form-control" value="1/2 inch">
+                                {{ form.meter_size }}
                                 <small class="form-text text-muted">Default: 1/2 inch</small>
+                                {% if form.meter_size.errors %}
+                                    <div class="text-danger">{{ form.meter_size.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -161,7 +209,10 @@
                                 <label class="font-weight-bold">
                                     <i class="fa fa-calendar"></i> Connection Date *
                                 </label>
-                                <input type="date" name="connection_date" class="form-control" required>
+                                {{ form.connection_date }}
+                                {% if form.connection_date.errors %}
+                                    <div class="text-danger">{{ form.connection_date.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -178,12 +229,10 @@
                                 <label class="font-weight-bold">
                                     <i class="fa fa-toggle-on"></i> Status
                                 </label>
-                                <select name="status" class="form-control">
-                                    <option value="ACTIVE" selected>Active</option>
-                                    <option value="DISCONNECTED">Disconnected</option>
-                                    <option value="SUSPENDED">Suspended</option>
-                                    <option value="CLOSED">Closed</option>
-                                </select>
+                                {{ form.status }}
+                                {% if form.status.errors %}
+                                    <div class="text-danger">{{ form.status.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -191,17 +240,23 @@
                                 <label class="font-weight-bold">
                                     <i class="fa fa-peso-sign"></i> Monthly Minimum
                                 </label>
-                                <input type="number" step="0.01" name="monthly_minimum" class="form-control" value="150.00">
+                                {{ form.monthly_minimum }}
                                 <small class="form-text text-muted">Will be set based on classification</small>
+                                {% if form.monthly_minimum.errors %}
+                                    <div class="text-danger">{{ form.monthly_minimum.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-check mt-4 pt-2">
-                                <input type="checkbox" name="is_senior" class="form-check-input" id="is_senior">
-                                <label class="form-check-label font-weight-bold" for="is_senior">
+                                {{ form.is_senior }}
+                                <label class="form-check-label font-weight-bold" for="{{ form.is_senior.id_for_label }}">
                                     <i class="fa fa-user-clock text-warning"></i> Senior Citizen (20% Discount)
                                 </label>
                                 <small class="form-text text-muted">Check if subscriber is a senior citizen</small>
+                                {% if form.is_senior.errors %}
+                                    <div class="text-danger">{{ form.is_senior.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -216,7 +271,7 @@
                                 </a>
                                 <button type="submit" class="btn btn-success">
                                     <i class="fa fa-save"></i> 
-                                    {% if subscriber %}Update Subscriber{% else %}Add Subscriber{% endif %}
+                                    {% if form.instance.pk %}Update Subscriber{% else %}Add Subscriber{% endif %}
                                 </button>
                             </div>
                         </div>
@@ -270,7 +325,7 @@
 <script>
 $(document).ready(function() {
     // Auto-generate account number if adding new subscriber
-    {% if not subscriber %}
+    {% if not form.instance.pk %}
     if ($('#id_account_number').val() === '') {
         // Generate next account number (this is a simple example)
         var currentYear = new Date().getFullYear();

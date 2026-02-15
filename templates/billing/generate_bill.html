@@ -1,0 +1,362 @@
+{% extends 'billing/base.html' %}
+{% block title %}Generate Bill - Macrohon Water Billing{% endblock %}
+{% block page_title %}Generate Bill{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h4><i class="fa fa-file-invoice-dollar"></i> Generate Bill from Meter Reading</h4>
+        <small class="text-muted">Reading ID: {{ reading.pk }} - {{ reading.subscriber.full_name }}</small>
+    </div>
+    <div class="col-md-4 text-right">
+        <a href="{% url 'subscriber-detail' reading.subscriber.pk %}" class="btn btn-secondary">
+            <i class="fa fa-arrow-left"></i> Back to Subscriber
+        </a>
+    </div>
+</div>
+
+<!-- Reading Information Alert -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <h5><i class="fa fa-info-circle"></i> Meter Reading Summary</h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>Account:</strong> {{ reading.subscriber.account_number }}<br>
+                    <strong>Subscriber:</strong> {{ reading.subscriber.full_name }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Billing Month:</strong> {{ reading.billing_month|date:"F Y" }}<br>
+                    <strong>Reading Date:</strong> {{ reading.reading_date|date:"M d, Y" }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Previous Reading:</strong> {{ reading.previous_reading }} m³<br>
+                    <strong>Current Reading:</strong> {{ reading.current_reading }} m³
+                </div>
+                <div class="col-md-3">
+                    <strong>Consumption:</strong> 
+                    <span class="badge badge-primary badge-lg">{{ reading.volume_consumed }} m³</span><br>
+                    <strong>Classification:</strong> {{ reading.subscriber.get_classification_display }}
+                    {% if reading.subscriber.is_senior %}
+                        <br><span class="badge badge-warning">Senior Citizen</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Display Form Errors -->
+{% if form.errors %}
+<div class="alert alert-danger">
+    <h6><i class="fa fa-exclamation-triangle"></i> Please correct the following errors:</h6>
+    <ul class="mb-0">
+        {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+                <li><strong>{{ field|capfirst }}:</strong> {{ error }}</li>
+            {% endfor %}
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<!-- Bill Generation Form -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <i class="fa fa-cog"></i> Bill Generation Settings
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h6 class="text-success border-bottom pb-2">
+                                <i class="fa fa-calendar"></i> Billing Period & Dates
+                            </h6>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-calendar-alt"></i> Billing Month *
+                                </label>
+                                <input type="date" name="billing_month" class="form-control" 
+                                       value="{{ reading.billing_month|date:'Y-m-d' }}" required readonly>
+                                <small class="form-text text-muted">
+                                    From meter reading: {{ reading.billing_month|date:"F Y" }}
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-exclamation-triangle"></i> Payment Due Date *
+                                </label>
+                                <input type="date" name="due_date" class="form-control" required
+                                       value="{{ suggested_due_date|date:'Y-m-d' }}">
+                                <small class="form-text text-muted">
+                                    When payment should be made
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-cut"></i> Disconnection Cutoff Date *
+                                </label>
+                                <input type="date" name="cutoff_date" class="form-control" required
+                                       value="{{ suggested_cutoff_date|date:'Y-m-d' }}">
+                                <small class="form-text text-muted">
+                                    Date for potential service disconnection
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h6 class="text-info border-bottom pb-2">
+                                <i class="fa fa-calculator"></i> Billing Preview
+                            </h6>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Water Consumption</label>
+                                <input type="text" class="form-control bg-light" 
+                                       value="{{ reading.volume_consumed }} m³" readonly>
+                                <small class="form-text text-muted">
+                                    Current ({{ reading.current_reading }}) - Previous ({{ reading.previous_reading }})
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Classification Rate</label>
+                                <input type="text" class="form-control bg-light" 
+                                       value="{{ reading.subscriber.get_classification_display }}" readonly>
+                                <small class="form-text text-muted">
+                                    Rate will be applied based on classification
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h6 class="text-warning border-bottom pb-2">
+                                <i class="fa fa-exclamation-circle"></i> Special Considerations
+                            </h6>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" 
+                                       {% if reading.subscriber.is_senior %}checked disabled{% endif %}>
+                                <label class="form-check-label">
+                                    <strong>Senior Citizen Discount (20%)</strong>
+                                </label>
+                                {% if reading.subscriber.is_senior %}
+                                <small class="form-text text-success">
+                                    ✓ This subscriber is eligible for senior citizen discount
+                                </small>
+                                {% else %}
+                                <small class="form-text text-muted">
+                                    Not applicable for this subscriber
+                                </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Previous Balance</label>
+                                <input type="text" class="form-control bg-light" 
+                                       value="₱{{ reading.subscriber.get_running_balance|floatformat:2 }}" readonly>
+                                <small class="form-text text-muted">
+                                    Any unpaid balance will be added to this bill
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bill Generation Options -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h6 class="text-secondary border-bottom pb-2">
+                                <i class="fa fa-cogs"></i> Additional Options
+                            </h6>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-sticky-note"></i> Bill Notes/Remarks
+                                </label>
+                                <textarea name="bill_remarks" class="form-control" rows="3" 
+                                          placeholder="Optional notes or special instructions for this bill..."></textarea>
+                                <small class="form-text text-muted">
+                                    These notes will appear on the billing notice
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <hr>
+                            <div class="text-right">
+                                <a href="{% url 'subscriber-detail' reading.subscriber.pk %}" class="btn btn-secondary mr-2">
+                                    <i class="fa fa-times"></i> Cancel
+                                </a>
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="fa fa-file-invoice-dollar"></i> Generate Bill
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bill Estimation Sidebar -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <i class="fa fa-calculator"></i> Estimated Bill Amount
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <h3 class="text-primary mb-0" id="estimated-total">₱0.00</h3>
+                    <small class="text-muted">Estimated Total</small>
+                </div>
+
+                <table class="table table-borderless table-sm">
+                    <tr>
+                        <td>Basic Charge:</td>
+                        <td class="text-right" id="basic-charge">₱0.00</td>
+                    </tr>
+                    {% if reading.subscriber.is_senior %}
+                    <tr class="text-success">
+                        <td>Senior Discount:</td>
+                        <td class="text-right" id="senior-discount">-₱0.00</td>
+                    </tr>
+                    {% endif %}
+                    {% if reading.subscriber.get_running_balance > 0 %}
+                    <tr class="text-danger">
+                        <td>Previous Balance:</td>
+                        <td class="text-right">₱{{ reading.subscriber.get_running_balance|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr class="border-top font-weight-bold">
+                        <td>Estimated Total:</td>
+                        <td class="text-right" id="final-total">₱0.00</td>
+                    </tr>
+                </table>
+
+                <div class="alert alert-warning">
+                    <h6><i class="fa fa-info-circle"></i> Note</h6>
+                    <p class="mb-0 small">
+                        This is an estimate based on current water rates. 
+                        The actual bill may vary based on applicable charges and discounts.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rate Information -->
+        <div class="card mt-3">
+            <div class="card-header bg-secondary text-white">
+                <i class="fa fa-list-alt"></i> Rate Information
+            </div>
+            <div class="card-body">
+                <h6 class="text-primary">{{ reading.subscriber.get_classification_display }} Rate</h6>
+                <p class="small text-muted mb-2">
+                    Current rates applied for this classification. 
+                    Contact office for detailed rate schedule.
+                </p>
+                
+                <div class="border-top pt-2">
+                    <strong>Consumption:</strong> {{ reading.volume_consumed }} m³<br>
+                    <strong>Meter Size:</strong> {{ reading.subscriber.meter_size }}<br>
+                    {% if reading.subscriber.monthly_minimum > 0 %}
+                    <strong>Monthly Minimum:</strong> ₱{{ reading.subscriber.monthly_minimum|floatformat:2 }}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Processing Steps -->
+        <div class="card mt-3">
+            <div class="card-header bg-success text-white">
+                <i class="fa fa-list-ol"></i> What Happens Next
+            </div>
+            <div class="card-body">
+                <ol class="mb-0 small">
+                    <li>Bill will be generated with current rates</li>
+                    <li>All applicable discounts will be applied</li>
+                    <li>Previous balance will be included</li>
+                    <li>Bill will be ready for printing/delivery</li>
+                    <li>Payment tracking will begin</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Mock bill calculation (you can enhance this with AJAX to get real rates)
+    function calculateEstimate() {
+        var consumption = {{ reading.volume_consumed }};
+        var isEnior = {{ reading.subscriber.is_senior|yesno:"true,false" }};
+        var previousBalance = {{ reading.subscriber.get_running_balance }};
+        
+        // Basic calculation (this should match your actual billing logic)
+        var basicCharge = 150.00; // Base rate
+        if (consumption > 10) {
+            basicCharge += (consumption - 10) * 15.00; // Rate per cubic meter above minimum
+        }
+        
+        var seniorDiscount = 0;
+        if (isEnior) {
+            seniorDiscount = basicCharge * 0.20; // 20% discount
+        }
+        
+        var subtotal = basicCharge - seniorDiscount;
+        var total = subtotal + previousBalance;
+        
+        // Update display
+        $('#basic-charge').text('₱' + basicCharge.toFixed(2));
+        $('#senior-discount').text('-₱' + seniorDiscount.toFixed(2));
+        $('#estimated-total').text('₱' + subtotal.toFixed(2));
+        $('#final-total').text('₱' + total.toFixed(2));
+    }
+    
+    // Calculate estimate on page load
+    calculateEstimate();
+    
+    // Auto-set due date and cutoff date
+    var billingMonth = new Date('{{ reading.billing_month|date:"Y-m-d" }}');
+    
+    // Due date: 20th of next month
+    var dueDate = new Date(billingMonth);
+    dueDate.setMonth(dueDate.getMonth() + 1);
+    dueDate.setDate(20);
+    
+    // Cutoff date: 5 days after due date
+    var cutoffDate = new Date(dueDate);
+    cutoffDate.setDate(cutoffDate.getDate() + 5);
+    
+    // Set default dates if not already set
+    if (!$('input[name="due_date"]').val()) {
+        $('input[name="due_date"]').val(dueDate.toISOString().split('T')[0]);
+    }
+    if (!$('input[name="cutoff_date"]').val()) {
+        $('input[name="cutoff_date"]').val(cutoffDate.toISOString().split('T')[0]);
+    }
+});
+</script>
+{% endblock %}

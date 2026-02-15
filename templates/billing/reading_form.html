@@ -1,0 +1,317 @@
+{% extends 'billing/base.html' %}
+{% block title %}Add Meter Reading - Macrohon Water Billing{% endblock %}
+{% block page_title %}Add Meter Reading{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h4><i class="fa fa-tachometer-alt"></i> Add Meter Reading</h4>
+        <small class="text-muted">{{ sub.account_number }} - {{ sub.full_name }}</small>
+    </div>
+    <div class="col-md-4 text-right">
+        <a href="{% url 'subscriber-detail' sub.pk %}" class="btn btn-secondary">
+            <i class="fa fa-arrow-left"></i> Back to Subscriber
+        </a>
+    </div>
+</div>
+
+<!-- Subscriber Info Alert -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>Account:</strong> {{ sub.account_number }}<br>
+                    <strong>Subscriber:</strong> {{ sub.full_name }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Address:</strong> {{ sub.address|truncatechars:30 }}<br>
+                    <strong>Barangay:</strong> {{ sub.barangay }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Meter Number:</strong> {{ sub.meter_number }}<br>
+                    <strong>Meter Size:</strong> {{ sub.meter_size }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Classification:</strong> 
+                    <span class="badge badge-{% if sub.classification == 'PRIVATE' %}info{% elif sub.classification == 'COMMERCIAL' %}success{% else %}secondary{% endif %}">
+                        {{ sub.get_classification_display }}
+                    </span>
+                    {% if sub.is_senior %}
+                        <br><span class="badge badge-warning">Senior Citizen</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Display Form Errors -->
+{% if form.errors %}
+<div class="alert alert-danger">
+    <h6><i class="fa fa-exclamation-triangle"></i> Please correct the following errors:</h6>
+    <ul class="mb-0">
+        {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+                <li><strong>{{ field|capfirst }}:</strong> {{ error }}</li>
+            {% endfor %}
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<!-- Reading Form -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="fa fa-clipboard-list"></i> Meter Reading Information
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <!-- Hidden subscriber field -->
+                    <input type="hidden" name="subscriber" value="{{ sub.pk }}">
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-calendar"></i> Billing Month *
+                                </label>
+                                <input type="date" name="billing_month" class="form-control" required
+                                       value="{{ today|date:'Y-m-01' }}">
+                                <small class="form-text text-muted">
+                                    Enter the first day of the billing month (e.g., 2026-02-01)
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-calendar-check"></i> Reading Date *
+                                </label>
+                                <input type="date" name="reading_date" class="form-control" required
+                                       value="{{ today|date:'Y-m-d' }}">
+                                <small class="form-text text-muted">
+                                    Date when the meter was read
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h6 class="text-primary border-bottom pb-2">
+                                <i class="fa fa-gauge"></i> Meter Readings
+                            </h6>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    Previous Reading (m³) *
+                                </label>
+                                <input type="number" step="0.01" name="previous_reading" class="form-control" 
+                                       placeholder="0.00" required id="previous_reading">
+                                <small class="form-text text-muted">
+                                    Last month's meter reading
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    Current Reading (m³) *
+                                </label>
+                                <input type="number" step="0.01" name="current_reading" class="form-control" 
+                                       placeholder="0.00" required id="current_reading">
+                                <small class="form-text text-muted">
+                                    This month's meter reading
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-user"></i> Reader Name
+                                </label>
+                                <input type="text" name="reader_name" class="form-control" 
+                                       value="{{ user.get_full_name|default:user.username }}">
+                                <small class="form-text text-muted">
+                                    Name of person who read the meter
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-calculator"></i> Volume Consumed
+                                </label>
+                                <input type="text" class="form-control bg-light" id="volume_consumed" 
+                                       readonly placeholder="Will be calculated">
+                                <small class="form-text text-muted">
+                                    Automatically calculated: Current - Previous
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-sticky-note"></i> Remarks/Notes
+                                </label>
+                                <textarea name="remarks" class="form-control" rows="3" 
+                                          placeholder="Optional notes about the reading (e.g., meter condition, accessibility issues, etc.)"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <hr>
+                            <div class="text-right">
+                                <a href="{% url 'subscriber-detail' sub.pk %}" class="btn btn-secondary mr-2">
+                                    <i class="fa fa-times"></i> Cancel
+                                </a>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fa fa-save"></i> Save Reading & Generate Bill
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reading Summary & Tips -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <i class="fa fa-info-circle"></i> Reading Summary
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-3">
+                    <tr>
+                        <td><strong>Meter Number:</strong></td>
+                        <td>{{ sub.meter_number }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Meter Size:</strong></td>
+                        <td>{{ sub.meter_size }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Monthly Minimum:</strong></td>
+                        <td>₱{{ sub.monthly_minimum|floatformat:2 }}</td>
+                    </tr>
+                    <tr class="border-top">
+                        <td><strong>Previous Reading:</strong></td>
+                        <td><span id="display_previous">-</span> m³</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Current Reading:</strong></td>
+                        <td><span id="display_current">-</span> m³</td>
+                    </tr>
+                    <tr class="table-primary">
+                        <td><strong>Consumption:</strong></td>
+                        <td><strong><span id="display_consumption">-</span> m³</strong></td>
+                    </tr>
+                </table>
+
+                <div class="alert alert-warning">
+                    <h6><i class="fa fa-lightbulb"></i> Reading Tips</h6>
+                    <ul class="mb-0 small">
+                        <li>Ensure meter is accessible and visible</li>
+                        <li>Record the exact reading shown</li>
+                        <li>Current reading must be higher than previous</li>
+                        <li>Take a photo if reading seems unusual</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Last Reading History -->
+        {% if sub.meter_readings.exists %}
+        <div class="card mt-3">
+            <div class="card-header bg-secondary text-white">
+                <i class="fa fa-history"></i> Recent Readings
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Reading</th>
+                                <th>Consumption</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reading in sub.meter_readings.all|slice:":5" %}
+                            <tr>
+                                <td class="small">{{ reading.billing_month|date:"M Y" }}</td>
+                                <td class="small">{{ reading.current_reading }}</td>
+                                <td class="small">{{ reading.volume_consumed }} m³</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Calculate consumption automatically
+    function calculateConsumption() {
+        var previous = parseFloat($('#previous_reading').val()) || 0;
+        var current = parseFloat($('#current_reading').val()) || 0;
+        var consumption = current - previous;
+        
+        $('#volume_consumed').val(consumption >= 0 ? consumption.toFixed(2) + ' m³' : '');
+        $('#display_previous').text(previous > 0 ? previous.toFixed(2) : '-');
+        $('#display_current').text(current > 0 ? current.toFixed(2) : '-');
+        $('#display_consumption').text(consumption >= 0 ? consumption.toFixed(2) : '-');
+        
+        // Validate that current > previous
+        if (current > 0 && previous > 0 && current < previous) {
+            $('#current_reading').addClass('is-invalid');
+            $('.btn-success').prop('disabled', true);
+        } else {
+            $('#current_reading').removeClass('is-invalid');
+            $('.btn-success').prop('disabled', false);
+        }
+    }
+    
+    // Bind calculation to input changes
+    $('#previous_reading, #current_reading').on('input', calculateConsumption);
+    
+    // Set default previous reading from last meter reading
+    {% if sub.meter_readings.exists %}
+        $('#previous_reading').val('{{ sub.meter_readings.first.current_reading }}');
+        calculateConsumption();
+    {% endif %}
+    
+    // Auto-suggest billing month based on last reading
+    {% if sub.meter_readings.exists %}
+        var lastReading = new Date('{{ sub.meter_readings.first.billing_month|date:"Y-m-d" }}');
+        lastReading.setMonth(lastReading.getMonth() + 1);
+        var nextMonth = lastReading.getFullYear() + '-' + 
+                       String(lastReading.getMonth() + 1).padStart(2, '0') + '-01';
+        $('input[name="billing_month"]').val(nextMonth);
+    {% endif %}
+});
+</script>
+{% endblock %}

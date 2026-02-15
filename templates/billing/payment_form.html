@@ -1,0 +1,276 @@
+{% extends 'billing/base.html' %}
+{% block title %}Record Payment - Macrohon Water Billing{% endblock %}
+{% block page_title %}Record Payment{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h4><i class="fa fa-money-bill"></i> Record Payment</h4>
+        <small class="text-muted">Bill #{{ bill.id|stringformat:"04d" }} - {{ bill.subscriber.full_name }}</small>
+    </div>
+    <div class="col-md-4 text-right">
+        <a href="{% url 'bill-detail' bill.pk %}" class="btn btn-secondary">
+            <i class="fa fa-arrow-left"></i> Back to Bill
+        </a>
+    </div>
+</div>
+
+<!-- Bill Summary -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>Account:</strong> {{ bill.subscriber.account_number }}<br>
+                    <strong>Subscriber:</strong> {{ bill.subscriber.full_name }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Billing Period:</strong> {{ bill.billing_month|date:"M Y" }}<br>
+                    <strong>Due Date:</strong> {{ bill.due_date|date:"M d, Y" }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Total Amount Due:</strong> <span class="text-primary font-weight-bold">₱{{ bill.total_amount_due|floatformat:2 }}</span><br>
+                    <strong>Amount Paid:</strong> ₱{{ bill.amount_paid|floatformat:2 }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Current Balance:</strong> 
+                    <span class="{% if bill.balance > 0 %}text-danger{% else %}text-success{% endif %} font-weight-bold">
+                        ₱{{ bill.balance|floatformat:2 }}
+                    </span><br>
+                    <strong>Status:</strong> <span class="badge badge-{{ bill.status|lower }}">{{ bill.get_status_display }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Form -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <i class="fa fa-credit-card"></i> Payment Details
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-peso-sign"></i> Payment Amount *
+                                </label>
+                                <input type="number" step="0.01" name="amount_paid" class="form-control" 
+                                       value="{{ bill.balance }}" min="0.01" max="{{ bill.balance }}" required>
+                                <small class="form-text text-muted">
+                                    Maximum amount: ₱{{ bill.balance|floatformat:2 }}
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-receipt"></i> Official Receipt Number *
+                                </label>
+                                <input type="text" name="or_number" class="form-control" 
+                                       placeholder="OR-2026-XXXXXX" required>
+                                <small class="form-text text-muted">
+                                    Official receipt number for this payment
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-calendar"></i> Payment Date
+                                </label>
+                                <input type="date" name="payment_date" class="form-control" 
+                                       value="{{ today|date:'Y-m-d' }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fa fa-user"></i> Received By *
+                                </label>
+                                <input type="text" name="received_by" class="form-control" 
+                                       value="{{ user.get_full_name|default:user.username }}" required>
+                                <small class="form-text text-muted">
+                                    Name of cashier/collector
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold">
+                            <i class="fa fa-comment"></i> Payment Method
+                        </label>
+                        <select name="payment_method" class="form-control">
+                            <option value="CASH">Cash</option>
+                            <option value="CHECK">Check</option>
+                            <option value="ONLINE">Online Transfer</option>
+                            <option value="GCASH">GCash</option>
+                            <option value="PAYMAYA">PayMaya</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold">
+                            <i class="fa fa-sticky-note"></i> Remarks/Notes
+                        </label>
+                        <textarea name="remarks" class="form-control" rows="3" 
+                                  placeholder="Optional notes about this payment..."></textarea>
+                    </div>
+
+                    <!-- Payment Buttons -->
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <a href="{% url 'bill-detail' bill.pk %}" class="btn btn-secondary">
+                                <i class="fa fa-times"></i> Cancel
+                            </a>
+                        </div>
+                        <div class="col-md-6 text-right">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fa fa-check"></i> Record Payment
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Summary -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="fa fa-calculator"></i> Payment Summary
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-3">
+                    <tr>
+                        <td><strong>Current Balance:</strong></td>
+                        <td class="text-right text-danger font-weight-bold">
+                            ₱{{ bill.balance|floatformat:2 }}
+                        </td>
+                    </tr>
+                    <tr class="border-top">
+                        <td><strong>Payment Amount:</strong></td>
+                        <td class="text-right" id="payment-amount">
+                            ₱{{ bill.balance|floatformat:2 }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>New Balance:</strong></td>
+                        <td class="text-right font-weight-bold" id="new-balance">
+                            ₱0.00
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="alert alert-success">
+                    <h6><i class="fa fa-info-circle"></i> Payment Information</h6>
+                    <ul class="mb-0 small">
+                        <li>Payment will be recorded immediately</li>
+                        <li>Official receipt will be generated</li>
+                        <li>Bill status will be updated automatically</li>
+                        <li>Ledger entry will be created</li>
+                    </ul>
+                </div>
+
+                <!-- Quick Payment Options -->
+                <div class="mt-3">
+                    <h6 class="text-muted">Quick Payment Options:</h6>
+                    <div class="btn-group-vertical btn-group-sm w-100">
+                        <button type="button" class="btn btn-outline-primary" onclick="setPaymentAmount({{ bill.balance }})">
+                            Full Payment: ₱{{ bill.balance|floatformat:2 }}
+                        </button>
+                        {% if bill.balance >= 100 %}
+                        <button type="button" class="btn btn-outline-secondary" onclick="setPaymentAmount({{ bill.balance|floatformat:2|add:'-50' }})">
+                            Partial: ₱{{ bill.balance|floatformat:2|add:'-50' }}
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Payments -->
+        {% if bill.ledger_entries.all %}
+        <div class="card mt-3">
+            <div class="card-header bg-secondary text-white">
+                <i class="fa fa-history"></i> Payment History
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        {% for entry in bill.ledger_entries.all|slice:":5" %}
+                        {% if entry.entry_type == 'PAYMENT' %}
+                        <tr>
+                            <td class="small">{{ entry.entry_date|date:"M d" }}</td>
+                            <td class="small">{{ entry.or_number }}</td>
+                            <td class="text-right small text-success">₱{{ entry.credit|floatformat:2 }}</td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Update payment summary when amount changes
+    $('input[name="amount_paid"]').on('input', function() {
+        updatePaymentSummary();
+    });
+    
+    // Initialize payment summary
+    updatePaymentSummary();
+});
+
+function updatePaymentSummary() {
+    var currentBalance = {{ bill.balance }};
+    var paymentAmount = parseFloat($('input[name="amount_paid"]').val()) || 0;
+    var newBalance = currentBalance - paymentAmount;
+    
+    $('#payment-amount').text('₱' + paymentAmount.toFixed(2));
+    $('#new-balance').text('₱' + newBalance.toFixed(2));
+    
+    // Update color based on new balance
+    if (newBalance <= 0) {
+        $('#new-balance').removeClass('text-danger').addClass('text-success');
+    } else {
+        $('#new-balance').removeClass('text-success').addClass('text-danger');
+    }
+}
+
+function setPaymentAmount(amount) {
+    $('input[name="amount_paid"]').val(amount.toFixed(2));
+    updatePaymentSummary();
+}
+
+// Auto-generate OR number suggestion
+$(document).ready(function() {
+    var today = new Date();
+    var year = today.getFullYear();
+    var month = String(today.getMonth() + 1).padStart(2, '0');
+    var day = String(today.getDate()).padStart(2, '0');
+    var orSuggestion = 'OR-' + year + month + day + '-';
+    
+    $('input[name="or_number"]').attr('placeholder', orSuggestion + 'XXXX');
+});
+</script>
+{% endblock %}

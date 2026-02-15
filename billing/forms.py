@@ -1,6 +1,4 @@
 from django import forms
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Submit, Row, Column, Fieldset, HTML
 from .models import Subscriber, WaterRate, MeterReading, OtherCharge
  
 # ──────────────────────────────────────────────────────────
@@ -17,44 +15,29 @@ class SubscriberForm(forms.ModelForm):
             'connection_date', 'monthly_minimum',
         ]
         widgets = {
-            'connection_date': forms.DateInput(
-                attrs={'type': 'date', 'class': 'form-control'}),
-            'address':         forms.Textarea(attrs={'rows': 3}),
-            'service_address': forms.Textarea(attrs={'rows': 3}),
+            'account_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'MHN-2026-XXX'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'middle_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'suffix': forms.TextInput(attrs={'class': 'form-control'}),
+            'classification': forms.Select(attrs={'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-control'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'barangay': forms.TextInput(attrs={'class': 'form-control'}),
+            'service_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'contact_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'meter_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'meter_size': forms.TextInput(attrs={'class': 'form-control', 'value': '1/2 inch'}),
+            'connection_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'monthly_minimum': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'value': '150.00'}),
+            'is_senior': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
- 
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.layout = Layout(
-            Fieldset('Account Information',
-                Row(Column('account_number',  css_class='col-md-4'),
-                    Column('classification',  css_class='col-md-4'),
-                    Column('status',          css_class='col-md-4')),
-                Row(Column('is_senior',       css_class='col-md-12')),
-            ),
-            Fieldset('Personal Information',
-                Row(Column('last_name',   css_class='col-md-4'),
-                    Column('first_name',  css_class='col-md-4'),
-                    Column('middle_name', css_class='col-md-3'),
-                    Column('suffix',      css_class='col-md-1')),
-            ),
-            Fieldset('Contact & Location',
-                Row(Column('address',        css_class='col-md-8'),
-                    Column('barangay',       css_class='col-md-4')),
-                Row(Column('contact_number', css_class='col-md-6'),
-                    Column('email',          css_class='col-md-6')),
-            ),
-            Fieldset('Meter & Service',
-                Row(Column('meter_number',    css_class='col-md-4'),
-                    Column('meter_size',      css_class='col-md-4'),
-                    Column('connection_date', css_class='col-md-4')),
-                Row(Column('service_address', css_class='col-md-8'),
-                    Column('monthly_minimum', css_class='col-md-4')),
-            ),
-            Submit('submit', 'Save Subscriber', css_class='btn btn-primary btn-lg'),
-        )
- # ──────────────────────────────────────────────────────────
+ 
+# ──────────────────────────────────────────────────────────
 #   FORM 2 — MeterReadingForm
 # ──────────────────────────────────────────────────────────
 class MeterReadingForm(forms.ModelForm):
