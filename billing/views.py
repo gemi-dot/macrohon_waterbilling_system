@@ -247,15 +247,44 @@ def issue_notice(request, bill_pk):
  
  
 # ══════════════════════════════════════════════════════════
-#   VIEW 13 — Subscriber Ledger
+#   VIEW 13 — Subscriber Ledger (Enhanced)
 # ══════════════════════════════════════════════════════════
 @login_required
 def subscriber_ledger(request, pk):
-    sub     = get_object_or_404(Subscriber, pk=pk)
+    from django.db.models import Sum, Count
+    
+    sub = get_object_or_404(Subscriber, pk=pk)
     entries = sub.ledger_entries.all().order_by('entry_date', 'created_at')
     balance = sub.get_running_balance()
+    
+    # Calculate financial summaries
+    totals = entries.aggregate(
+        total_debits=Sum('debit'),
+        total_credits=Sum('credit'),
+        billing_count=Count('id', filter=Q(entry_type='BILLING')),
+        payment_count=Count('id', filter=Q(entry_type='PAYMENT')),
+        penalty_count=Count('id', filter=Q(entry_type='PENALTY')),
+    )
+    
+    # Calculate totals by entry type
+    entry_summaries = entries.values('entry_type').annotate(
+        type_debits=Sum('debit'),
+        type_credits=Sum('credit'),
+        type_count=Count('id')
+    )
+    
+    # Recent activity (last 6 months)
+    from datetime import datetime, timedelta
+    six_months_ago = datetime.now().date() - timedelta(days=180)
+    recent_entries = entries.filter(entry_date__gte=six_months_ago)
+    
     return render(request, 'billing/ledger.html', {
-        'sub': sub, 'entries': entries, 'balance': balance,
+        'sub': sub,
+        'entries': entries,
+        'balance': balance,
+        'totals': totals,
+        'entry_summaries': entry_summaries,
+        'recent_entries': recent_entries,
     })
  
  
@@ -314,3 +343,112 @@ def delinquent_report(request):
         'total_overdue': total_overdue,
         'count':         overdue.count(),
     })
+
+
+# ══════════════════════════════════════════════════════════
+#   VIEW 16 — General Ledger (All Transactions)
+# ══════════════════════════════════════════════════════════
+@login_required
+def general_ledger(request):
+    # Filter parameters
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    entry_type = request.GET.get('entry_type', '')
+    subscriber_search = request.GET.get('subscriber', '')
+    
+    # Base queryset
+    entries = Ledger.objects.select_related('subscriber', 'bill').all()
+    
+    # Apply filters
+    if date_from:
+        entries = entries.filter(entry_date__gte=date_from)
+    if date_to:
+        entries = entries.filter(entry_date__lte=date_to)
+    if entry_type:
+        entries = entries.filter(entry_type=entry_type)
+    if subscriber_search:
+        entries = entries.filter(
+            Q(subscriber__account_number__icontains=subscriber_search) |
+            Q(subscriber__last_name__icontains=subscriber_search) |
+            Q(subscriber__first_name__icontains=subscriber_search)
+        )
+    
+    # Order by date and time
+    entries = entries.order_by('-entry_date', '-created_at')
+    
+    # Calculate totals
+    totals = entries.aggregate(
+        total_debits=Sum('debit'),
+        total_credits=Sum('credit'),
+        net_amount=Sum('debit') - Sum('credit') if entries.exists() else Decimal('0')
+    )
+    
+    # Summary by entry type
+    type_summary = entries.values('entry_type').annotate(
+        type_debits=Sum('debit'),
+        type_credits=Sum('credit'),
+        type_count=Count('id')
+    ).order_by('entry_type')
+    
+    return render(request, 'billing/general_ledger.html', {
+        'entries': entries[:100],  # Limit to 100 for performance
+        'totals': totals,
+        'type_summary': type_summary,
+        'date_from': date_from,
+        'date_to': date_to,
+        'entry_type': entry_type,
+        'subscriber_search': subscriber_search,
+        'entry_type_choices': Ledger.ENTRY_TYPE_CHOICES,
+        'total_count': entries.count(),
+    })
+
+
+# ══════════════════════════════════════════════════════════
+#   VIEW 17 — Ledger Adjustment (Manual Entry)
+# ══════════════════════════════════════════════════════════
+@login_required
+def ledger_adjustment(request, pk):
+    subscriber = get_object_or_404(Subscriber, pk=pk)
+    
+    if request.method == 'POST':
+        entry_type = request.POST.get('entry_type', 'ADJUSTMENT')
+        description = request.POST.get('description', '')
+        amount = Decimal(request.POST.get('amount', '0'))
+        adjustment_type = request.POST.get('adjustment_type', 'debit')  # debit or credit
+        
+        if amount > 0 and description:
+            # Create ledger entry
+            entry = Ledger.objects.create(
+                subscriber=subscriber,
+                entry_date=date.today(),
+                entry_type=entry_type,
+                description=description,
+                debit=amount if adjustment_type == 'debit' else Decimal('0'),
+                credit=amount if adjustment_type == 'credit' else Decimal('0'),
+                running_balance=subscriber.get_running_balance(),
+            )
+            
+            # Update running balance for this and future entries
+            update_running_balances(subscriber)
+            
+            messages.success(request, f'Adjustment of ₱{amount} ({adjustment_type}) added successfully.')
+            return redirect('subscriber-ledger', pk=subscriber.pk)
+        else:
+            messages.error(request, 'Please provide valid amount and description.')
+    
+    return render(request, 'billing/ledger_adjustment.html', {
+        'subscriber': subscriber,
+        'entry_type_choices': Ledger.ENTRY_TYPE_CHOICES,
+    })
+
+
+def update_running_balances(subscriber):
+    """Update running balances for all ledger entries of a subscriber"""
+    entries = subscriber.ledger_entries.order_by('entry_date', 'created_at')
+    running_balance = Decimal('0')
+    
+    for entry in entries:
+        running_balance += (entry.debit - entry.credit)
+        if entry.running_balance != running_balance:
+            entry.running_balance = running_balance
+            entry.save(update_fields=['running_balance'])

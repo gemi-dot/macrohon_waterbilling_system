@@ -52,17 +52,42 @@ class MeterReadingForm(forms.ModelForm):
  
     def clean(self):
         cleaned = super().clean()
-        prev    = cleaned.get('previous_reading')
-        curr    = cleaned.get('current_reading')
+        prev = cleaned.get('previous_reading')
+        curr = cleaned.get('current_reading')
+        subscriber = cleaned.get('subscriber')
+        billing_month = cleaned.get('billing_month')
+        
+        # Check if current reading is less than previous reading
         if prev is not None and curr is not None and curr < prev:
             raise forms.ValidationError(
                 'Current reading cannot be less than previous reading.')
+        
+        # Check for duplicate meter reading (subscriber + billing_month combination)
+        if subscriber and billing_month:
+            existing_reading = MeterReading.objects.filter(
+                subscriber=subscriber,
+                billing_month=billing_month
+            )
+            
+            # If we're editing an existing reading, exclude it from the check
+            if self.instance and self.instance.pk:
+                existing_reading = existing_reading.exclude(pk=self.instance.pk)
+            
+            if existing_reading.exists():
+                existing = existing_reading.first()
+                raise forms.ValidationError(
+                    f'A meter reading already exists for {subscriber.full_name} '
+                    f'for {billing_month.strftime("%B %Y")}. '
+                    f'Current reading: {existing.current_reading} m³ (taken on {existing.reading_date}). '
+                    f'Please edit the existing reading instead of creating a new one.'
+                )
+        
         return cleaned
  
  
 # ──────────────────────────────────────────────────────────
 #   FORM 3 — PaymentForm
-# ──────────────────────────────────────────
+# ──────────────────────────────────────────────────────────
 class PaymentForm(forms.Form):
     amount_paid = forms.DecimalField(
         max_digits=10, decimal_places=2,

@@ -1,0 +1,246 @@
+{% extends 'billing/base.html' %}
+{% block title %}Ledger - {{ sub.account_number }} - Macrohon Water Billing{% endblock %}
+{% block page_title %}Account Ledger{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h4><i class="fa fa-book"></i> Account Ledger</h4>
+        <small class="text-muted">{{ sub.account_number }} - {{ sub.full_name }}</small>
+    </div>
+    <div class="col-md-4 text-right">
+        <a href="{% url 'subscriber-detail' sub.pk %}" class="btn btn-secondary">
+            <i class="fa fa-arrow-left"></i> Back to Account
+        </a>
+        <button onclick="window.print()" class="btn btn-primary">
+            <i class="fa fa-print"></i> Print
+        </button>
+    </div>
+</div>
+
+<!-- Account Summary -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>Account Number:</strong> {{ sub.account_number }}<br>
+                    <strong>Subscriber:</strong> {{ sub.full_name }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Address:</strong> {{ sub.address|truncatechars:40 }}<br>
+                    <strong>Barangay:</strong> {{ sub.barangay }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Classification:</strong> {{ sub.get_classification_display }}<br>
+                    <strong>Status:</strong> 
+                    <span class="badge badge-{% if sub.status == 'ACTIVE' %}success{% else %}warning{% endif %}">
+                        {{ sub.get_status_display }}
+                    </span>
+                </div>
+                <div class="col-md-3">
+                    <strong>Current Balance:</strong><br>
+                    <h4 class="{% if balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                        ₱{{ balance|floatformat:2 }}
+                    </h4>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ledger Entries -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <div class="row">
+                    <div class="col-md-8">
+                        <i class="fa fa-list-alt"></i> Transaction History
+                    </div>
+                    <div class="col-md-4 text-right">
+                        <small>{{ entries.count }} transaction{{ entries.count|pluralize }}</small>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% if entries %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th width="10%">Date</th>
+                                <th width="12%">Type</th>
+                                <th width="30%">Description</th>
+                                <th width="12%" class="text-right">Debit</th>
+                                <th width="12%" class="text-right">Credit</th>
+                                <th width="12%" class="text-right">Balance</th>
+                                <th width="12%">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in entries %}
+                            <tr class="{% if entry.entry_type == 'PAYMENT' %}table-success{% elif entry.entry_type == 'BILLING' %}table-light{% elif entry.entry_type == 'PENALTY' %}table-warning{% endif %}">
+                                <td class="small">
+                                    {{ entry.entry_date|date:"M d, Y" }}
+                                </td>
+                                <td>
+                                    <span class="badge badge-{% if entry.entry_type == 'PAYMENT' %}success{% elif entry.entry_type == 'BILLING' %}primary{% elif entry.entry_type == 'PENALTY' %}warning{% else %}secondary{% endif %}">
+                                        {{ entry.get_entry_type_display }}
+                                    </span>
+                                </td>
+                                <td class="small">
+                                    {{ entry.description }}
+                                    {% if entry.bill %}
+                                        <br><small class="text-muted">
+                                            <i class="fa fa-file-text"></i> 
+                                            <a href="{% url 'bill-detail' entry.bill.pk %}" class="text-muted">
+                                                Bill #{{ entry.bill.pk }}
+                                            </a>
+                                        </small>
+                                    {% endif %}
+                                </td>
+                                <td class="text-right">
+                                    {% if entry.debit > 0 %}
+                                        <span class="text-danger">
+                                            ₱{{ entry.debit|floatformat:2 }}
+                                        </span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td class="text-right">
+                                    {% if entry.credit > 0 %}
+                                        <span class="text-success">
+                                            ₱{{ entry.credit|floatformat:2 }}
+                                        </span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td class="text-right font-weight-bold">
+                                    <span class="{% if entry.running_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                                        ₱{{ entry.running_balance|floatformat:2 }}
+                                    </span>
+                                </td>
+                                <td class="small">
+                                    {% if entry.or_number %}
+                                        <i class="fa fa-receipt"></i> {{ entry.or_number }}<br>
+                                    {% endif %}
+                                    {% if entry.received_by %}
+                                        <small class="text-muted">by: {{ entry.received_by }}</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="thead-light">
+                            <tr>
+                                <td colspan="5" class="text-right font-weight-bold">
+                                    <strong>Current Account Balance:</strong>
+                                </td>
+                                <td class="text-right font-weight-bold">
+                                    <span class="{% if balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                                        ₱{{ balance|floatformat:2 }}
+                                    </span>
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fa fa-book fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Transactions Found</h5>
+                    <p class="text-muted">This account has no ledger entries yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Account Summary Statistics -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <i class="fa fa-chart-bar"></i> Account Summary
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5 class="text-primary">
+                                ₱{% with entries|dictsort:"entry_type" as sorted_entries %}
+                                    {% for entry in sorted_entries %}
+                                        {% if entry.entry_type == 'BILLING' %}
+                                            {% if forloop.first %}{{ entry.debit|add:0 }}{% else %}{{ total_billed|add:entry.debit }}{% endif %}
+                                            {% with entry.debit as total_billed %}{% endwith %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endwith %}0.00
+                            </h5>
+                            <small class="text-muted">Total Billed</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5 class="text-success">
+                                ₱{% for entry in entries %}{% if entry.entry_type == 'PAYMENT' %}{% if forloop.first %}{{ entry.credit }}{% endif %}{% endif %}{% endfor %}0.00
+                            </h5>
+                            <small class="text-muted">Total Payments</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5 class="text-warning">
+                                ₱{% for entry in entries %}{% if entry.entry_type == 'PENALTY' %}{% if forloop.first %}{{ entry.debit }}{% endif %}{% endif %}{% endfor %}0.00
+                            </h5>
+                            <small class="text-muted">Total Penalties</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5 class="{% if balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                                ₱{{ balance|floatformat:2 }}
+                            </h5>
+                            <small class="text-muted">Current Balance</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-3">
+    <div class="col-md-12 text-center">
+        {% if balance > 0 %}
+        <a href="#" class="btn btn-success mr-2">
+            <i class="fa fa-money-bill"></i> Record Payment
+        </a>
+        {% endif %}
+        <a href="{% url 'reading-create' sub.pk %}" class="btn btn-primary mr-2">
+            <i class="fa fa-tachometer-alt"></i> Add Reading
+        </a>
+        <a href="{% url 'subscriber-edit' sub.pk %}" class="btn btn-secondary">
+            <i class="fa fa-edit"></i> Edit Account
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+@media print {
+    .btn, .alert-info { display: none !important; }
+    .card { border: none !important; }
+    .card-header { background: white !important; color: black !important; }
+    .table { font-size: 12px; }
+    .badge { border: 1px solid #333; }
+}
+</style>
+{% endblock %}

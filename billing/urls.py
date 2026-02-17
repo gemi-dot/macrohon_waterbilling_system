@@ -26,6 +26,10 @@ urlpatterns = [
     path('bills/<int:pk>/notice/print/',    views.print_billing_notice,   name='print-billing-notice'),
     path('bills/<int:bill_pk>/notice/issue/',views.issue_notice,          name='issue-notice'),
  
+#     ── Ledger Management ────────────────────────────────────
+    path('ledger/',                         views.general_ledger,         name='general-ledger'),
+    path('ledger/<int:pk>/adjust/',         views.ledger_adjustment,      name='ledger-adjustment'),
+
 #     ── Reports ───────────────────────────────────────────
     path('reports/collection/',             views.collection_report,      name='collection-report'),
     path('reports/delinquent/',             views.delinquent_report,      name='delinquent-report'),

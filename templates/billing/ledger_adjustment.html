@@ -1,0 +1,239 @@
+{% extends 'billing/base.html' %}
+{% block title %}Ledger Adjustment - {{ subscriber.account_number }} - Macrohon Water Billing{% endblock %}
+{% block page_title %}Ledger Adjustment{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h4><i class="fa fa-edit"></i> Ledger Adjustment</h4>
+        <small class="text-muted">{{ subscriber.account_number }} - {{ subscriber.full_name }}</small>
+    </div>
+    <div class="col-md-4 text-right">
+        <a href="{% url 'subscriber-ledger' subscriber.pk %}" class="btn btn-secondary">
+            <i class="fa fa-arrow-left"></i> Back to Ledger
+        </a>
+    </div>
+</div>
+
+<!-- Account Information -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <div class="row">
+                <div class="col-md-4">
+                    <strong>Account:</strong> {{ subscriber.account_number }}<br>
+                    <strong>Subscriber:</strong> {{ subscriber.full_name }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Address:</strong> {{ subscriber.address|truncatechars:40 }}<br>
+                    <strong>Classification:</strong> {{ subscriber.get_classification_display }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Current Balance:</strong><br>
+                    <h5 class="{% if subscriber.get_running_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                        ₱{{ subscriber.get_running_balance|floatformat:2 }}
+                    </h5>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Adjustment Form -->
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <i class="fa fa-exclamation-triangle"></i> Make Ledger Adjustment
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="fa fa-info-circle"></i>
+                    <strong>Warning:</strong> Ledger adjustments should be used carefully as they directly affect account balances. 
+                    Ensure proper authorization and documentation for all adjustments.
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label class="font-weight-bold">Entry Type:</label>
+                        <select name="entry_type" class="form-control" required>
+                            <option value="ADJUSTMENT">Adjustment</option>
+                            <option value="PENALTY">Penalty</option>
+                            <option value="REFUND">Refund</option>
+                            <option value="WRITEOFF">Write-off</option>
+                            <option value="CORRECTION">Correction</option>
+                        </select>
+                        <small class="form-text text-muted">Select the type of adjustment being made.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold">Adjustment Type:</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="adjustment_type" id="debit" value="debit" checked>
+                                <label class="form-check-label text-danger" for="debit">
+                                    <i class="fa fa-plus"></i> Debit (Increase Balance)
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="adjustment_type" id="credit" value="credit">
+                                <label class="form-check-label text-success" for="credit">
+                                    <i class="fa fa-minus"></i> Credit (Decrease Balance)
+                                </label>
+                            </div>
+                        </div>
+                        <small class="form-text text-muted">Choose whether this adjustment increases or decreases the account balance.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold">Amount:</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">₱</span>
+                            </div>
+                            <input type="number" name="amount" class="form-control" step="0.01" min="0.01" required
+                                   placeholder="0.00">
+                        </div>
+                        <small class="form-text text-muted">Enter the adjustment amount.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold">Description:</label>
+                        <textarea name="description" class="form-control" rows="3" required
+                                  placeholder="Enter detailed description for this adjustment..."></textarea>
+                        <small class="form-text text-muted">Provide a clear explanation for this adjustment for audit purposes.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="alert alert-light border">
+                            <h6><i class="fa fa-calculator"></i> Balance Preview:</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Current Balance:</strong><br>
+                                    <span class="{% if subscriber.get_running_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                                        ₱{{ subscriber.get_running_balance|floatformat:2 }}
+                                    </span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>New Balance:</strong><br>
+                                    <span id="newBalance" class="font-weight-bold">₱{{ subscriber.get_running_balance|floatformat:2 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group text-center">
+                        <button type="submit" class="btn btn-warning btn-lg">
+                            <i class="fa fa-save"></i> Apply Adjustment
+                        </button>
+                        <a href="{% url 'subscriber-ledger' subscriber.pk %}" class="btn btn-secondary btn-lg ml-2">
+                            <i class="fa fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Adjustments -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <i class="fa fa-history"></i> Recent Adjustments (Last 10)
+            </div>
+            <div class="card-body">
+                {% with subscriber.ledger_entries.all|dictsort:"entry_date" as recent_adjustments %}
+                {% if recent_adjustments %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th class="text-right">Debit</th>
+                                <th class="text-right">Credit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in recent_adjustments|slice:":10" %}
+                            {% if entry.entry_type != 'BILLING' and entry.entry_type != 'PAYMENT' %}
+                            <tr>
+                                <td class="small">{{ entry.entry_date|date:"M d, Y" }}</td>
+                                <td>
+                                    <span class="badge badge-secondary">{{ entry.get_entry_type_display }}</span>
+                                </td>
+                                <td class="small">{{ entry.description|truncatechars:50 }}</td>
+                                <td class="text-right">
+                                    {% if entry.debit > 0 %}₱{{ entry.debit|floatformat:2 }}{% else %}-{% endif %}
+                                </td>
+                                <td class="text-right">
+                                    {% if entry.credit > 0 %}₱{{ entry.credit|floatformat:2 }}{% else %}-{% endif %}
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted">
+                    <i class="fa fa-info-circle"></i> No recent adjustments found for this account.
+                </div>
+                {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    function updateBalancePreview() {
+        var currentBalance = {{ subscriber.get_running_balance }};
+        var amount = parseFloat($('input[name="amount"]').val()) || 0;
+        var adjustmentType = $('input[name="adjustment_type"]:checked').val();
+        
+        var newBalance;
+        if (adjustmentType === 'debit') {
+            newBalance = currentBalance + amount;
+        } else {
+            newBalance = currentBalance - amount;
+        }
+        
+        var $newBalance = $('#newBalance');
+        $newBalance.text('₱' + newBalance.toFixed(2));
+        
+        // Update color based on balance
+        $newBalance.removeClass('text-success text-danger');
+        if (newBalance > 0) {
+            $newBalance.addClass('text-danger');
+        } else {
+            $newBalance.addClass('text-success');
+        }
+    }
+    
+    // Update preview when amount or type changes
+    $('input[name="amount"], input[name="adjustment_type"]').on('input change', updateBalancePreview);
+    
+    // Confirmation before submitting
+    $('form').on('submit', function(e) {
+        var amount = $('input[name="amount"]').val();
+        var adjustmentType = $('input[name="adjustment_type"]:checked').val();
+        var description = $('textarea[name="description"]').val();
+        
+        var message = `Are you sure you want to apply this ${adjustmentType} adjustment of ₱${amount}?\n\nDescription: ${description}`;
+        
+        if (!confirm(message)) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

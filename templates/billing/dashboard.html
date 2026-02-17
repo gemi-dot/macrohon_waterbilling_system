@@ -40,6 +40,36 @@
   </div>
 </div>
  
+<!-- Quick Actions Section -->
+<div class='row mb-4'>
+  <div class='col-md-12'>
+    <div class='card'>
+      <div class='card-header bg-info text-white'>
+        <i class='fa fa-bolt'></i> Quick Actions
+      </div>
+      <div class='card-body'>
+        <div class='row'>
+          <div class='col-md-4'>
+            <a href="{% url 'general-ledger' %}" class='btn btn-outline-primary btn-block mb-2'>
+              <i class='fa fa-book'></i> General Ledger
+            </a>
+          </div>
+          <div class='col-md-4'>
+            <a href="{% url 'subscriber-list' %}" class='btn btn-outline-success btn-block mb-2'>
+              <i class='fa fa-users'></i> View Subscribers
+            </a>
+          </div>
+          <div class='col-md-4'>
+            <a href="{% url 'bill-list' %}" class='btn btn-outline-danger btn-block mb-2'>
+              <i class='fa fa-file-invoice'></i> View Bills
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class='card'>
   <div class='card-header bg-primary text-white'>
     <i class='fa fa-history'></i> Recent Payments

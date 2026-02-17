@@ -50,13 +50,37 @@
 {% if form.errors %}
 <div class="alert alert-danger">
     <h6><i class="fa fa-exclamation-triangle"></i> Please correct the following errors:</h6>
+    {% if form.non_field_errors %}
+        <div class="mb-3">
+            {% for error in form.non_field_errors %}
+                <div class="alert alert-warning">
+                    <strong><i class="fa fa-info-circle"></i> Duplicate Reading Found:</strong><br>
+                    {{ error }}
+                    <hr class="my-2">
+                    <div class="text-center">
+                        <a href="{% url 'subscriber-detail' sub.pk %}" class="btn btn-sm btn-primary">
+                            <i class="fa fa-edit"></i> View Existing Readings
+                        </a>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="clearForm()">
+                            <i class="fa fa-refresh"></i> Clear Form
+                        </button>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    {% if form.field_errors %}
     <ul class="mb-0">
         {% for field, errors in form.errors.items %}
-            {% for error in errors %}
-                <li><strong>{{ field|capfirst }}:</strong> {{ error }}</li>
-            {% endfor %}
+            {% if field != '__all__' %}
+                {% for error in errors %}
+                    <li><strong>{{ field|capfirst }}:</strong> {{ error }}</li>
+                {% endfor %}
+            {% endif %}
         {% endfor %}
     </ul>
+    {% endif %}
 </div>
 {% endif %}
 
@@ -293,6 +317,18 @@ $(document).ready(function() {
             $('#current_reading').removeClass('is-invalid');
             $('.btn-success').prop('disabled', false);
         }
+    }
+    
+    // Clear form function for duplicate reading error
+    window.clearForm = function() {
+        $('input[name="billing_month"]').val('{{ today|date:"Y-m-01" }}');
+        $('input[name="reading_date"]').val('{{ today|date:"Y-m-d" }}');
+        $('#previous_reading').val('');
+        $('#current_reading').val('');
+        $('input[name="reader_name"]').val('{{ user.get_full_name|default:user.username }}');
+        $('textarea[name="remarks"]').val('');
+        calculateConsumption();
+        $('.alert-danger').hide();
     }
     
     // Bind calculation to input changes
